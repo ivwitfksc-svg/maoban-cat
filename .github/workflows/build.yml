@@ -1,1 +1,24 @@
+name: Build Windows EXE
 
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-action@stable
+    
+    - name: Build
+      run: |
+        cd src-tauri
+        cargo build --release
+    
+    - name: Upload EXE
+      uses: actions/upload-artifact@v3
+      with:
+        name: maoban-exe
+        path: src-tauri/target/release/maoban.exe
