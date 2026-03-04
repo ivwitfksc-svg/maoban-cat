@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>喵伴设置</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+            background:linear-gradient(180deg,#2a2a4e 0%,#1a1a3e 100%);
+            min-height:100vh;
+            color:#fff;
+            padding:20px
+        }
+        .header{text-align:center;margin-bottom:25px}
+        .header h1{font-size:24px;display:flex;align-items:center;justify-content:center;gap:10px}
+        .cat-avatar{width:80px;height:80px;background:#111;border-radius:50%;margin:0 auto 15px;display:flex;align-items:center;justify-content:center;font-size:40px}
+        
+        .card{background:rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px}
+        .card h3{font-size:14px;margin-bottom:12px;opacity:0.8}
+        
+        .form-group{margin-bottom:12px}
+        .form-group label{display:block;font-size:12px;margin-bottom:5px;opacity:0.7}
+        .form-group input{width:100%;padding:10px;border:none;border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;font-size:14px}
+        .form-group input:focus{outline:2px solid #667eea}
+        
+        .btn{width:100%;padding:12px;border:none;border-radius:8px;background:linear-gradient(90deg,#667eea,#764ba2);color:#fff;font-size:14px;cursor:pointer;transition:opacity 0.3s}
+        .btn:hover{opacity:0.9}
+        .btn-secondary{background:rgba(255,255,255,0.1)}
+        
+        .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+        .stat-item{background:rgba(255,255,255,0.05);padding:12px;border-radius:8px}
+        .stat-value{font-size:20px;font-weight:bold;color:#667eea}
+        .stat-label{font-size:11px;opacity:0.6;margin-top:4px}
+        
+        .toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+        .toggle-label{font-size:14px}
+        .toggle-switch{width:50px;height:26px;background:rgba(255,255,255,0.2);border-radius:13px;position:relative;cursor:pointer;transition:background 0.3s}
+        .toggle-switch.active{background:#667eea}
+        .toggle-switch::after{content:'';position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform 0.3s}
+        .toggle-switch.active::after{transform:translateX(24px)}
+        
+        .footer{text-align:center;margin-top:30px;font-size:12px;opacity:0.5}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="cat-avatar">🐱</div>
+        <h1><span id="catNameDisplay">小黑</span></h1>
+    </div>
+    
+    <div class="card">
+        <h3>📊 状态</h3>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="age">0</div>
+                <div class="stat-label">岁</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="energy">80</div>
+                <div class="stat-label">精力</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="affection">20</div>
+                <div class="stat-label">亲密度</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>⚙️ 设置</h3>
+        <div class="form-group">
+            <label>猫咪名字</label>
+            <input type="text" id="nameInput" value="小黑" placeholder="给你的猫起个名字">
+        </div>
+        <button class="btn" onclick="saveName()">保存名字</button>
+    </div>
+    
+    <div class="card">
+        <div class="toggle" onclick="toggleAutoStart()">
+            <span class="toggle-label">⚡ 开机自动启动</span>
+            <div class="toggle-switch" id="autoStartToggle"></div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <button class="btn btn-secondary" onclick="exitApp()">❌ 退出应用</button>
+    </div>
+    
+    <div class="footer">喵伴 Desktop Cat v1.0</div>
+
+<script>
+// 读取本地存储的数据
+let catData=JSON.parse(localStorage.getItem('maoban_data')||'{"name":"小黑","age":0,"energy":80,"affection":20}');
+
+// 初始化显示
+document.getElementById('catNameDisplay').textContent=catData.name;
+document.getElementById('nameInput').value=catData.name;
+document.getElementById('age').textContent=catData.age||0;
+document.getElementById('energy').textContent=catData.energy||80;
+document.getElementById('affection').textContent=catData.affection||20;
+
+function saveName(){
+    const name=document.getElementById('nameInput').value.trim();
+    if(name){
+        catData.name=name;
+        localStorage.setItem('maoban_data',JSON.stringify(catData));
+        document.getElementById('catNameDisplay').textContent=name;
+        alert('名字已保存为：'+name);
+        
+        // 通知主窗口
+        if(window.opener){
+            window.opener.postMessage({type:'rename',name:name},'*');
+        }
+    }
+}
+
+function toggleAutoStart(){
+    const toggle=document.getElementById('autoStartToggle');
+    toggle.classList.toggle('active');
+    const enabled=toggle.classList.contains('active');
+    localStorage.setItem('maoban_autostart',enabled);
+    
+    // 调用 Tauri API（如果在桌面环境中）
+    if(window.__TAURI__){
+        window.__TAURI__.invoke('toggle_auto_start');
+    }
+}
+
+function exitApp(){
+    if(confirm('确定要退出喵伴吗？')){
+        if(window.__TAURI__){
+            window.__TAURI__.invoke('exit');
+        }else{
+            window.close();
+        }
+    }
+}
+
+// 检查开机启动状态
+if(localStorage.getItem('maoban_autostart')==='true'){
+    document.getElementById('autoStartToggle').classList.add('active');
+}
+
+// 定期更新状态
+setInterval(()=>{
+    const data=JSON.parse(localStorage.getItem('maoban_data')||'{}');
+    document.getElementById('energy').textContent=data.energy||80;
+    document.getElementById('affection').textContent=data.affection||20;
+},5000);
+</script>
+</body>
+</html>
